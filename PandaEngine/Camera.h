@@ -18,7 +18,7 @@ public:
 	void ProcessKeyboardInput(GLFWwindow* window, double deltaTime);
 	GLuint shaderProgramID;
 	void SetPosition(glm::vec3 position) { cameraEye = position; }
-	void Follow(glm::vec3 followPos, glm::vec3 followTarget);
+	void Follow(glm::vec3 followPos,glm::vec3 offset, glm::vec3 followTarget, glm::vec3 followOrientation = glm::vec3(0.0));
 	glm::vec3 GetCameraRotation();
 
 	glm::vec3 cameraEye;
@@ -26,17 +26,26 @@ public:
 	glm::vec3 upVector;
 	bool isFollowing = false;
 	bool camControl = true;
+	glm::vec3 GetForwardVector();
+	glm::vec3 GetRightVector();
+	glm::vec3 GetUpVector();
+	float yaw;
+	float pitch;
 private:
 
 	float near;
 	float far;
-	float yaw;
-	float pitch;
+
 	float speed;
 	bool stopUpdates; 
 	glm::mat4 matView;
 
 	glm::vec3 followPos;
 	glm::vec3 followTarget;
+	glm::vec3 followOrientation;
+	glm::vec3 offset;
+
+	glm::vec3 forwardVector;
+	glm::vec3 rightVector;
 };
 
