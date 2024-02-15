@@ -12,7 +12,7 @@ bool ConfigReader::LoadConfigFile(ConfigDef& config)
 {
   //  JsonReader reader;
     rapidjson::Document document;
-    if (reader.LoadJsonFile((path + configPath).c_str(), document))
+    if (reader.LoadJsonFile((configPath).c_str(), document))
     {
         std::cout << "Loaded json file" << std::endl;
     }
@@ -28,7 +28,7 @@ bool ConfigReader::LoadConfigFile(ConfigDef& config)
         rapidjson::Value& userPref = document["Config"]["UserPrefs"];
 
         rapidjson::Document userPrefDoc;
-        std::string userPrefPath = path + userPref.GetString();
+        std::string userPrefPath = userPref.GetString();
         config.userDef = new UserDef();
         if (reader.LoadJsonFile(userPrefPath.c_str(), userPrefDoc))
         {
@@ -54,7 +54,7 @@ bool ConfigReader::LoadConfigFile(ConfigDef& config)
         for (rapidjson::SizeType i = 0; i < scenes.Size(); i++)
         {
 			rapidjson::Document sceneDoc;
-            std::string scenePath = path + scenes[i]["SceneData"].GetString();
+            std::string scenePath =  scenes[i]["SceneData"].GetString();
             if (reader.LoadJsonFile(scenePath.c_str(), sceneDoc))
             {
 				SceneDef* sceneDef = new SceneDef();
@@ -85,7 +85,7 @@ void ConfigReader::WriteConfigFile(ConfigDef& config)
     userPrefs.AddMember("WindowHeight", config.userDef->windowHeight, allocator);
    // userPrefs.AddMember("WindowTitle", config.userDef->windowTitle, allocator);
     configValue.AddMember("UserPrefs", userPrefs, allocator);
-    reader.WriteJsonFile((path + configPath).c_str(), document);
+    reader.WriteJsonFile((configPath).c_str(), document);
 }
 
 void ConfigReader::SaveScene(SceneDef* scene)

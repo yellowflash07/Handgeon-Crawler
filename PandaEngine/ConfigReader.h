@@ -39,7 +39,6 @@ public:
     void SaveScene(SceneDef* scene);
 private:
     JsonReader reader;
-    const std::string path = "../Assets/Json/";
     const std::string configPath = "config.json";
 };
 

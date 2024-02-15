@@ -82,8 +82,6 @@ bool Engine::Initialize()
     SetAudioPath("../Assets/Audio");
     meshManager->SetTexturePath("../Assets/Textures");
 
-
-
     if (!LoadDefaultShaders())
     {
         return false;
