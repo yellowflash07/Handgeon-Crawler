@@ -1,0 +1,14 @@
+{
+    "LevelData": {
+      "Characters" : [
+        {
+          "Name" : "Player",
+          "MeshName" : "Hand",
+          "Health" : 100,
+          "Attack" : 10,
+          "Speed"  : 10,
+          "Position" : [ 0,0,0]
+        }
+      ]
+    }
+  }
