@@ -137,11 +137,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CharacterFactory.cpp" />
     <ClCompile Include="LevelReader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Player.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CharacterFactory.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="iCharacter.h" />
     <ClInclude Include="LevelReader.h" />
+    <ClInclude Include="Player.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

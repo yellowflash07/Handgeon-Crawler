@@ -13,6 +13,7 @@ struct Character
 	int attack;
 	int speed;
 	glm::vec3 position;
+	cMesh* mesh;
 };
 
 struct LevelData

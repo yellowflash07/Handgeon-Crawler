@@ -58,6 +58,6 @@ void LevelReader::LoadLevel(LevelData& levelData)
 
 void LevelReader::LoadCharacter(Character* character)
 {
-	cMesh* charMesh = engine->LoadMesh(character->meshName, character->name);
-	charMesh->drawPosition = character->position;
+	character->mesh = engine->LoadMesh(character->meshName, character->name);
+	character->mesh->drawPosition = character->position;
 }
