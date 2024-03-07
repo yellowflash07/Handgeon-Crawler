@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _cMesh_HG_
+#define _cMesh_HG_
 
 #include <glm/glm.hpp>
 #include <glm/vec3.hpp>
@@ -6,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "../cVAOManager/sModelDrawInfo.h"
+#include "../PandaEngine/GraphicsCommon.h"
 
 class cMesh
 {
@@ -74,7 +76,7 @@ public:
 	std::string texture[NUM_OF_TEXTURES];
 	float textureRatio[NUM_OF_TEXTURES];
 	std::string maskTexture;
-
+	GLuint renderTextureID =0;
 	glm::vec2 UV_Offset;
 
 	float transperancy = 1.0f;
@@ -98,10 +100,14 @@ public:
 	bool isChild = false;
 	void AddChild(cMesh* child);
 	bool hideParent = false;
+	bool useBone = false;
+	glm::mat4 GetTransform();
 private:
 	unsigned int m_UniqueID;
 	static const unsigned int FIRST_UNIQUE_ID = 1000;
 	static unsigned int m_nextUniqueID;
 	glm::quat m_qOrientation;
 };
+
+#endif
 

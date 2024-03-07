@@ -3,6 +3,13 @@
 #include "cLightManager.h"
 #include <sstream> //"string stream"
 #include <imgui.h>
+#include "ImGuizmo.h"
+#include "Camera.h"
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+
+
+extern Camera* camera;
 
 cLight::cLight()
 {
@@ -95,51 +102,61 @@ void cLightManager::UpdateUniformValues(GLuint shaderID)
 			selectedLight = pCurrentLight;
 		}
 		ImGui::End();
-		glUniform4f(pCurrentLight->position_UL,
-					pCurrentLight->position.x,
-					pCurrentLight->position.y,
-					pCurrentLight->position.z,
-					pCurrentLight->position.w);
-
-		glUniform4f(theLights[index]->diffuse_UL,
-					theLights[index]->diffuse.x,
-					theLights[index]->diffuse.y,
-					theLights[index]->diffuse.z,
-					theLights[index]->diffuse.w);
-
-		glUniform4f(theLights[index]->specular_UL,
-					theLights[index]->specular.x,
-					theLights[index]->specular.y,
-					theLights[index]->specular.z,
-					theLights[index]->specular.w);
-
-		glUniform4f(theLights[index]->atten_UL,
-					theLights[index]->atten.x,
-					theLights[index]->atten.y,
-					theLights[index]->atten.z,
-					theLights[index]->atten.w);
-
-		glUniform4f(theLights[index]->direction_UL,
-					theLights[index]->direction.x,
-					theLights[index]->direction.y,
-					theLights[index]->direction.z,
-					theLights[index]->direction.w);
-
-		glUniform4f(theLights[index]->param1_UL,
-					theLights[index]->param1.x,
-					theLights[index]->param1.y,
-					theLights[index]->param1.z,
-					theLights[index]->param1.w);
-
-		glUniform4f(theLights[index]->param2_UL,
-					theLights[index]->param2.x,
-					theLights[index]->param2.y,
-					theLights[index]->param2.z,
-					theLights[index]->param2.w);
 	}// for ( unsigned int index...
+
+	UpdateLights(shaderID);
 
 	DrawBox();
 	return;
+}
+
+void cLightManager::UpdateLights(GLuint shaderID)
+{
+	for (unsigned int index = 0; index != cLightManager::NUMBER_OF_LIGHTS_IM_USING; index++)
+	{
+		cLight* pCurrentLight = theLights[index];
+		glUniform4f(pCurrentLight->position_UL,
+			pCurrentLight->position.x,
+			pCurrentLight->position.y,
+			pCurrentLight->position.z,
+			pCurrentLight->position.w);
+
+		glUniform4f(theLights[index]->diffuse_UL,
+			theLights[index]->diffuse.x,
+			theLights[index]->diffuse.y,
+			theLights[index]->diffuse.z,
+			theLights[index]->diffuse.w);
+
+		glUniform4f(theLights[index]->specular_UL,
+			theLights[index]->specular.x,
+			theLights[index]->specular.y,
+			theLights[index]->specular.z,
+			theLights[index]->specular.w);
+
+		glUniform4f(theLights[index]->atten_UL,
+			theLights[index]->atten.x,
+			theLights[index]->atten.y,
+			theLights[index]->atten.z,
+			theLights[index]->atten.w);
+
+		glUniform4f(theLights[index]->direction_UL,
+			theLights[index]->direction.x,
+			theLights[index]->direction.y,
+			theLights[index]->direction.z,
+			theLights[index]->direction.w);
+
+		glUniform4f(theLights[index]->param1_UL,
+			theLights[index]->param1.x,
+			theLights[index]->param1.y,
+			theLights[index]->param1.z,
+			theLights[index]->param1.w);
+
+		glUniform4f(theLights[index]->param2_UL,
+			theLights[index]->param2.x,
+			theLights[index]->param2.y,
+			theLights[index]->param2.z,
+			theLights[index]->param2.w);
+	}
 }
 
 void cLightManager::DrawBox()
@@ -147,6 +164,42 @@ void cLightManager::DrawBox()
 	if (selectedLight == nullptr) return;
 //	std::string boxName = "Transform " + selectedMesh->friendlyName;
 	ImGui::Begin("Light Value");
+
+	glm::mat4 matModel = glm::mat4(1.0f);
+	matModel = glm::translate(matModel, glm::vec3(selectedLight->position));
+	matModel = glm::mat4(glm::quat(selectedLight->direction)) * matModel;
+
+	static ImGuizmo::OPERATION gizmoOperation(ImGuizmo::TRANSLATE);
+
+	bool isTranslateRadio = false;
+	ImGui::NewLine();
+	if (ImGui::RadioButton("Translate", &isTranslateRadio))
+	{
+		gizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+	}
+	bool isRotateRadio = false;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Rotate", &isRotateRadio))
+	{
+		gizmoOperation = ImGuizmo::OPERATION::ROTATE;
+	}
+
+	ImGuizmo::Manipulate(glm::value_ptr(camera->matView),
+		glm::value_ptr(camera->matProjection),
+		gizmoOperation,
+		ImGuizmo::MODE::LOCAL,
+		glm::value_ptr(matModel));
+
+	/*if (ImGuizmo::IsUsing())
+	{
+		glm::vec3 position, scale;
+		glm::quat rotation;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(matModel, scale, rotation, position, skew, perspective);
+		selectedLight->position = glm::vec4(position,0);
+		selectedLight->direction = glm::vec4(rotation.x, rotation.y, rotation.z, 1);
+	}*/
 
 	ImGui::Text("On?"); ImGui::SetNextItemWidth(40);
 	ImGui::InputFloat("On", &selectedLight->param2.x);

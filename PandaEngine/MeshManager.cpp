@@ -3,6 +3,9 @@
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 #include <imgui.h>
 #include "Camera.h"
+#include "ImGuizmo.h"
+#include <glm/gtc/type_ptr.hpp> 
+#include <glm/gtx/matrix_decompose.hpp>
 
 extern Camera* camera;
 
@@ -23,7 +26,7 @@ MeshManager::~MeshManager()
 cMesh* MeshManager::AddMesh(std::string modelNameAtPath, std::string friendlyName, unsigned int shaderProgramID)
 {
     sModelDrawInfo drawInfo;
-
+    this->shaderProgramID = shaderProgramID;
     if (!vaoManager->LoadModelIntoVAOAI(modelNameAtPath, drawInfo, shaderProgramID))
     {
 		//  DoTheErrorLogging("Didn't load model");
@@ -32,10 +35,28 @@ cMesh* MeshManager::AddMesh(std::string modelNameAtPath, std::string friendlyNam
 
     cMesh* mesh = new cMesh();
     mesh->meshName = modelNameAtPath;
-    mesh->friendlyName = friendlyName;
     mesh->modelDrawInfo = drawInfo;
+    mesh->friendlyName = friendlyName;
+
+    for (size_t i = 0; i < meshList.size(); i++)
+    {
+        if (meshList[i]->friendlyName == friendlyName)
+        {
+            mesh->friendlyName = friendlyName + std::to_string(i);
+        }
+    }
+
     std::cout << "Loaded: " << drawInfo.numberOfVertices << " vertices" << std::endl;
     meshList.push_back(mesh);
+
+    for (int j = 0; j < 150; ++j)
+    {
+        glm::mat4 boneMatrix = glm::mat4(1.0f);
+        std::string boneUL = "BoneMatrices[" + std::to_string(j) + "]";
+        GLint boneUL_ID = glGetUniformLocation(shaderProgramID, boneUL.c_str());
+        glUniformMatrix4fv(boneUL_ID, 1, GL_FALSE, glm::value_ptr(boneMatrix));
+    }
+
     return mesh;
 }
 
@@ -190,6 +211,10 @@ void MeshManager::DrawObject(cMesh* pCurrentMesh, glm::mat4 matModelParent, GLui
     {
 		glDisable(GL_BLEND);
 	}
+    GLint useBone_UL = glGetUniformLocation(shaderProgramID, "useBones");
+    glUniform1f(useBone_UL, pCurrentMesh->useBone ? (GLfloat)GL_TRUE : (GLfloat)GL_FALSE);
+
+
 
     GLint explosionOffset_UL = glGetUniformLocation(shaderProgramID, "explosionOffset");
     glUniform1f(explosionOffset_UL, pCurrentMesh->explosionOffset);
@@ -201,6 +226,19 @@ void MeshManager::DrawObject(cMesh* pCurrentMesh, glm::mat4 matModelParent, GLui
     sModelDrawInfo modelInfo;
     if (vaoManager->FindDrawInfoByModelName(pCurrentMesh->meshName, modelInfo))
     {
+        if (pCurrentMesh->useBone)
+        {
+            CalculateMatrices(modelInfo.RootNode, glm::mat4(1.0f), modelInfo);
+            for (int j = 0; j < modelInfo.finalTransformations.size(); ++j)
+            {
+                glm::mat4 boneMatrix = modelInfo.finalTransformations[j];
+                std::string boneUL = "BoneMatrices[" + std::to_string(j) + "]";
+                GLint boneUL_ID = glGetUniformLocation(shaderProgramID, boneUL.c_str());
+                glUniformMatrix4fv(boneUL_ID, 1, GL_FALSE, glm::value_ptr(boneMatrix));
+            }
+        }
+        
+
         // Found it!!!
         if (!pCurrentMesh->hideParent)
         {
@@ -238,14 +276,25 @@ void MeshManager::DrawObject(cMesh* pCurrentMesh, glm::mat4 matModelParent, GLui
 void MeshManager::DrawAllObjects(GLuint shaderProgramID)
 {
     ImGui::Begin("Meshes");
+    ImGui::SetNextWindowContentSize(ImVec2(500, 500));
+    ImGui::Text("Drag a model here");
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Model_DND"))
+        {
+            const char* payload_n = (const char*)payload->Data;
+            AddMesh(payload_n, payload_n, shaderProgramID);
+            //std::cout << "Accepted: " << payload_n << std::endl;
+        }
+        ImGui::EndDragDropTarget();
+    }
 
     for (unsigned int index = 0; index != meshList.size(); index++)
     {
         cMesh* pCurrentMesh = meshList[index];
-
-        if (ImGui::Button(pCurrentMesh->friendlyName.c_str(), ImVec2(100,25)))
+        if (ImGui::Button(pCurrentMesh->friendlyName.c_str(), ImVec2(100, 25)))
         {
-            selectedMesh = pCurrentMesh;        
+            selectedMesh = pCurrentMesh;
         }
 
         if (pCurrentMesh->bIsVisible)
@@ -254,6 +303,7 @@ void MeshManager::DrawAllObjects(GLuint shaderProgramID)
             DrawObject(pCurrentMesh, matModel, shaderProgramID);
         }
     }
+
     ImGui::End();
     DrawTransformBox();
 }
@@ -288,8 +338,15 @@ void MeshManager::DrawTransformBox()
     if (selectedMesh == nullptr) return;
     std::string boxName = "Transform " + selectedMesh->friendlyName;
     selectedMesh->bIsWireframe = false;
+   
     ImGui::Begin(boxName.c_str());
+    std::string friendName = selectedMesh->friendlyName;
+    if (ImGui::InputText("Name", &friendName[0], 100, ImGuiInputTextFlags_::ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+		selectedMesh->friendlyName = friendName.c_str();
+	}
 
+    ImGui::SetNextWindowContentSize(ImVec2(250, 250));
     ImGui::Text("Position"); ImGui::SetNextItemWidth(40);
     ImGui::InputFloat("xP", &selectedMesh->drawPosition.x); ImGui::SameLine(); ImGui::SetNextItemWidth(40);
     ImGui::InputFloat("yP", &selectedMesh->drawPosition.y); ImGui::SameLine(); ImGui::SetNextItemWidth(40);
@@ -309,10 +366,112 @@ void MeshManager::DrawTransformBox()
 
     ImGui::SliderFloat("Transparency", &selectedMesh->transperancy, 0.0f, 1.0f); ImGui::SameLine();
 
+    glm::mat4 meshTransform = selectedMesh->GetTransform();
+
+    static ImGuizmo::OPERATION gizmoOperation(ImGuizmo::OPERATION::UNIVERSAL);
+    bool isTranslateRadio = false;
+    ImGui::NewLine();
+    if(ImGui::RadioButton("Translate", &isTranslateRadio))
+    {
+		gizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+    }
+    bool isRotateRadio = false;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate", &isRotateRadio))
+    {
+        gizmoOperation = ImGuizmo::OPERATION::ROTATE;
+    }
+    bool isScaleRadio = false;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale", &isScaleRadio))
+    {
+        gizmoOperation = ImGuizmo::OPERATION::SCALE;
+    }
+
+
+    ImGui::SameLine();
+    ImGuizmo::Manipulate(glm::value_ptr(camera->matView),
+                        glm::value_ptr(camera->matProjection),
+                        gizmoOperation,
+                        ImGuizmo::MODE::WORLD,
+                        glm::value_ptr(meshTransform));
+
+    if(ImGuizmo::IsUsing())
+	{
+		glm::vec3 position, scale;
+		glm::quat rotation;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(meshTransform, scale, rotation, position, skew, perspective);
+		selectedMesh->drawPosition = position;
+		selectedMesh->drawScale = scale;
+		selectedMesh->setRotationFromQuat(rotation);
+	}
+
+    ImGui::NewLine();
+    for (size_t i = 0; i < selectedMesh->NUM_OF_TEXTURES; i++)
+    {
+        if (selectedMesh->texture[i].empty())
+        {
+            ImGui::Text("Texture Slot: %d EMPTY", i);
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Texture_DND"))
+                {
+                    const char* payload_n = (const char*)payload->Data;
+                    selectedMesh->texture[i] = payload_n;
+                    selectedMesh->textureRatio[i] = 1.0f;
+                    selectedMesh->hasVertexColors = false;
+                    selectedMesh->bUseDebugColours = false;
+                }
+                ImGui::EndDragDropTarget();
+            }
+           // break;
+        }
+        else
+        {
+            ImGui::Text("Texture Slot: %s", selectedMesh->texture[i].c_str());
+            if(ImGui::SliderFloat("Mix Ratio", &selectedMesh->textureRatio[i], 0.0f, 1.0f))
+            {
+            }
+            if (ImGui::Button("Remove Texture"))
+            {
+				selectedMesh->texture[i] = "";
+				selectedMesh->textureRatio[i] = 0.0f;
+			}
+        }
+    }
+
+    ImGui::NewLine();
+    ImGui::Text("Mask Texture: %s", selectedMesh->maskTexture.c_str());
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Texture_DND"))
+        {
+			const char* payload_n = (const char*)payload->Data;
+			selectedMesh->maskTexture = payload_n;
+		}
+		ImGui::EndDragDropTarget();
+	}
+
+    if (!selectedMesh->maskTexture.empty())
+    {
+        if (ImGui::Button("Remove Mask"))
+        {
+            selectedMesh->maskTexture = "";
+        }
+    }
+
     if (ImGui::Button("Save"))
     {
         saver->SaveMeshes(meshList);
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Delete"))
+    {
+		RemoveMesh(selectedMesh->friendlyName);
+        selectedMesh = nullptr;
+	}
     ImGui::End();
 }
 
@@ -326,12 +485,61 @@ void MeshManager::LoadSavedMeshes(unsigned int shaderProgramID)
         mesh->setRotationFromEuler(meshes[i]->eulerRotation);
         mesh->drawScale = meshes[i]->drawScale;
         mesh->color = meshes[i]->color;
+        mesh->transperancy = meshes[i]->transperancy;
+        mesh->maskTexture = meshes[i]->maskTexture;
+        for (size_t j = 0; j < cMesh::NUM_OF_TEXTURES; j++)
+        {
+			mesh->texture[j] = meshes[i]->texture[j];
+			mesh->textureRatio[j] = meshes[i]->textureRatio[j];
+		}
     }
 }
 
 bool MeshManager::GetModelDrawInfo(std::string friendlyName, sModelDrawInfo& drawInfo)
 {  
     return vaoManager->FindDrawInfoByModelName(FindMeshByFriendlyName(friendlyName)->meshName, drawInfo);
+}
+
+bool MeshManager::GetTransformedMeshDrawInfo(std::string friendlyName, sModelDrawInfo& drawInfo)
+{
+ //   sModelDrawInfo modelInfo;
+    if (!GetModelDrawInfo(friendlyName, drawInfo))
+    {
+		return false;
+	}
+
+    cMesh* pCurrentMesh = FindMeshByFriendlyName(friendlyName);
+
+    glm::mat4 matModel = glm::mat4(1.0f);   // Identity matrix
+    glm::mat4 matTranslate = glm::translate(glm::mat4(1.0f),
+        		                glm::vec3(pCurrentMesh->drawPosition.x,
+                    			pCurrentMesh->drawPosition.y,
+                    			pCurrentMesh->drawPosition.z));
+
+    glm::mat4 matRotation = glm::mat4(pCurrentMesh->get_qOrientation());
+
+    glm::mat4 matScale = glm::scale(glm::mat4(1.0f),
+        		                glm::vec3(pCurrentMesh->drawScale.x,
+                    			pCurrentMesh->drawScale.y,
+                    			pCurrentMesh->drawScale.z));
+
+    matModel = matModel * matTranslate;         // Done last
+    matModel = matModel * matRotation;
+    matModel = matModel * matScale;
+
+    for (size_t i = 0; i < drawInfo.numberOfVertices; i++)
+    {
+        glm::vec3 vert = glm::vec3(drawInfo.pVertices[i].x,
+            drawInfo.pVertices[i].y,
+            drawInfo.pVertices[i].z);
+        vert = (matModel * glm::vec4(vert, 1.0f));
+
+        drawInfo.pVertices[i].x = vert.x;
+        drawInfo.pVertices[i].y = vert.y;
+        drawInfo.pVertices[i].z = vert.z;
+    }  
+
+    return true;
 }
 
 void MeshManager::ToggleWireframe(bool wireframe)
@@ -344,7 +552,13 @@ void MeshManager::ToggleWireframe(bool wireframe)
 
 bool MeshManager::LoadTexture(std::string textureFileName)
 {
-    return textureManager->Create2DTextureFromBMPFile(textureFileName, true);
+    if (textureManager->Create2DTextureFromBMPFile(textureFileName, true))
+    {
+        std::cout << "Loaded texture: " << textureFileName << std::endl;
+        return true;
+    }
+    std::cout << "Didn't load texture: " << textureFileName << std::endl;
+    return false;
 }
 
 bool MeshManager::LoadCubeMap(std::string cubeMapName, std::string posX_fileName, std::string negX_fileName, std::string posY_fileName, std::string negY_fileName, std::string posZ_fileName, std::string negZ_fileName, bool bIsSeamless)
@@ -357,6 +571,26 @@ bool MeshManager::LoadCubeMap(std::string cubeMapName, std::string posX_fileName
         bIsSeamless, errorString);
 
 }
+
+void MeshManager::RemoveMesh(std::string friendlyName)
+{
+    for (size_t i = 0; i < meshList.size(); i++)
+    {
+        cMesh* mesh = meshList[i];
+        if (mesh->friendlyName == friendlyName)
+        {
+			meshList.erase(meshList.begin() + i);
+           // delete mesh;
+			return;
+		}
+	}
+}
+
+void MeshManager::UpdateVAOBuffers(std::string friendlyName, sModelDrawInfo& drawInfo)
+{    
+    vaoManager->UpdateVAOBuffers(friendlyName, drawInfo, shaderProgramID);
+}
+
 
 void MeshManager::SetUpTextures(cMesh* pCurrentMesh, GLuint shaderProgramID)
 {
@@ -371,6 +605,33 @@ void MeshManager::SetUpTextures(cMesh* pCurrentMesh, GLuint shaderProgramID)
         glUniform1i(skyBoxSampler_UL, textureUnit30);
         return;
     }
+
+    if (pCurrentMesh->renderTextureID > 0)
+    {
+        //GLint renderTextureBool_UL = glGetUniformLocation(shaderProgramID, "hasRenderTexture");
+        //glUniform1f(renderTextureBool_UL, (GLfloat)GL_TRUE);
+        GLint textureBool_UL = glGetUniformLocation(shaderProgramID, "hasRenderTexture");
+        glUniform1f(textureBool_UL, (GLfloat)GL_TRUE);
+
+        GLint textureUnitNumber = 0;
+        glActiveTexture(GL_TEXTURE0 + textureUnitNumber);
+        glBindTexture(GL_TEXTURE_2D, pCurrentMesh->renderTextureID);
+        GLint texture_00_UL = glGetUniformLocation(shaderProgramID, "renderTexture");
+        glUniform1i(texture_00_UL, textureUnitNumber);
+
+  /*      GLint textureMixRatio_0_3_UL = glGetUniformLocation(shaderProgramID, "textureMixRatio_0_3");
+
+        glUniform4f(textureMixRatio_0_3_UL,
+            1.0f,
+            1.0f,
+            1.0f,
+            1.0f);*/
+
+        return;
+	}
+
+    GLint renderTextureBool_UL = glGetUniformLocation(shaderProgramID, "hasRenderTexture");
+    glUniform1f(renderTextureBool_UL, (GLfloat)GL_FALSE);
 
     GLint textureBool_UL = glGetUniformLocation(shaderProgramID, "hasTexture");
     glUniform1f(textureBool_UL, (GLfloat)GL_FALSE);
@@ -429,5 +690,31 @@ void MeshManager::SetUpTextures(cMesh* pCurrentMesh, GLuint shaderProgramID)
 
 
    
+}
+
+void MeshManager::CalculateMatrices(Node* node, const glm::mat4& parentTransformationMatrix, 
+    sModelDrawInfo& modelInfo)
+{
+    std::string nodeName = node->Name;
+    glm::mat4 nodeTransform = node->Transformation;
+
+    glm::mat4 globalTransformation = parentTransformationMatrix * nodeTransform;
+
+    auto boneInfoMap = modelInfo.boneInfoMap;
+    if (boneInfoMap.find(nodeName) != boneInfoMap.end())
+    {
+        int index = boneInfoMap[nodeName].boneID;
+        glm::mat4 offset = boneInfoMap[nodeName].BoneOffset;
+        boneInfoMap[nodeName].FinalTransformation = modelInfo.GlobalInverseTransformation * globalTransformation * 
+                                                                    offset;
+        modelInfo.finalTransformations.push_back(boneInfoMap[nodeName].FinalTransformation);
+    }
+  
+    // Calculate all children
+    for (int i = 0; i < node->Children.size(); ++i)
+    {
+        CalculateMatrices(node->Children[i], globalTransformation, modelInfo);
+    }
+
 }
 

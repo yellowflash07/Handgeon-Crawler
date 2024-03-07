@@ -3,7 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/vec3.hpp>
 #include <string>
-
+#include <vector>
+#include <map>
 // The vertex structure 
 //	that's ON THE GPU (eventually) 
 // So dictated from THE SHADER
@@ -15,6 +16,11 @@ struct sVertex
 	float r, g, b, a;
 	float nx, ny, nz, nw;	// Won't use nw
 	float u, v;				// Texture coordinates
+	//float bx, by, bz, bw;	// Bone indexes
+	//float tx, ty, tz, tw;	// Bone weights
+
+	float boneIndex[4];	// Bone indexes
+	float boneWeights[4];	// Bone weights
 };
 
 struct sTriangle
@@ -22,6 +28,56 @@ struct sTriangle
 	glm::vec3 v1;
 	glm::vec3 v2;
 	glm::vec3 v3;
+};
+
+struct Node
+{
+	Node(const std::string& name) : Name(name) { }
+	std::string Name;
+	glm::mat4 Transformation;
+	std::vector<Node*> Children;
+};
+
+struct BoneInfo
+{
+	std::string boneName;
+	unsigned int boneID;		// Index of the bone
+	glm::mat4 BoneOffset = glm::mat4(1.0f);;	// How to move from bone space to mesh space
+	glm::mat4 FinalTransformation = glm::mat4(1.0f);	// Bone space to world space
+	//glm::mat4 GlobalTransformation = glm::mat4(1.0f);;	// Bone space to world space
+};
+
+struct BoneWeightInfo {
+	BoneWeightInfo() {
+		m_BoneId[0] = 0;
+		m_BoneId[1] = 0;
+		m_BoneId[2] = 0;
+		m_BoneId[3] = 0;
+		m_Weight[0] = 0.f;
+		m_Weight[1] = 0.f;
+		m_Weight[2] = 0.f;
+		m_Weight[3] = 0.f;
+	}
+	float m_BoneId[4];
+	float m_Weight[4];
+};
+
+struct NodeAnimation
+{
+	NodeAnimation(const std::string& name) : Name(name) { }
+	std::string Name;
+	std::map<float, glm::vec3> PositionKeys;
+	std::map<float, glm::vec3> ScalingKeys;
+	std::map<float, glm::vec3> RotationKeys;
+};
+
+struct AnimationInfo
+{
+	std::string AnimationName;
+	float Duration;
+	float TicksPerSecond;
+	Node* RootNode;
+	std::vector<NodeAnimation*> NodeAnimations;
 };
 
 struct sModelDrawInfo
@@ -48,6 +104,7 @@ struct sModelDrawInfo
 
 	sTriangle* pTriangles;
 
+	
 	glm::vec3 maxExtents_XYZ;	// bounding box maximums
 	glm::vec3 minExtents_XYZ;	// bounding box minimums
 	glm::vec3 deltaExtents_XYZ;	// bounding box dimensions
@@ -55,6 +112,17 @@ struct sModelDrawInfo
 
 	void calcExtents(void);
 
+	Node* RootNode;
+	std::map<std::string, int> NodeNameToIdMap;
+	std::map<std::string, BoneInfo> boneInfoMap;
+	std::vector<glm::mat4> NodeHeirarchyTransformations;
+	glm::mat4 GlobalInverseTransformation;
+	std::vector<BoneInfo> vecBoneInfo;
+	std::vector<BoneWeightInfo> vecBoneWeights;
+	std::map<std::string, int> BoneNameToIdMap;
+	std::vector<glm::mat4> finalTransformations;
+	std::vector<AnimationInfo*> Animations;
+	int boneCount = 0;
 	// 
 	unsigned int getUniqueID(void);
 private:

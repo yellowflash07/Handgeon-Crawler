@@ -54,7 +54,7 @@ void Camera::Update(GLFWwindow* window, double deltaTime)
         rightVector = glm::normalize(glm::cross(upVector, forwardVector));
 	}
 
-    glm::mat4 matProjection = glm::perspective(0.6f,
+    matProjection = glm::perspective(0.6f,
                                                 ratio,
                                                 near,
                                                 far);
@@ -141,7 +141,9 @@ void Camera::ProcessKeyboardInput(GLFWwindow* window, double deltaTime)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         return;
     }
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
         cameraEye += speed * (float)deltaTime * cameraTarget;
@@ -202,5 +204,20 @@ glm::vec3 Camera::GetRightVector()
 glm::vec3 Camera::GetUpVector()
 {
     return upVector;
+}
+
+glm::mat4 Camera::GetViewMatrix()
+{
+    return glm::mat4();
+}
+
+glm::mat4 Camera::GetProjectionMatrix()
+{
+    return glm::mat4();
+}
+
+glm::mat4 Camera::GetViewProjectionMatrix()
+{
+    return glm::mat4();
 }
 

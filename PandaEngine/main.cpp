@@ -2,9 +2,8 @@
 //#include "Engine.h"
 //#include "Random.h"
 //#include <iostream>
-//#include <map>
-//#include "ConfigReader.h"
-//
+//#include "SoftBodyManager.h"
+//#include "Animation.h"
 //extern Camera* camera;
 //int keyHit = 0;
 //
@@ -40,22 +39,38 @@
 //                                    "CubeMaps/TropicalSunnyDayBack2048.bmp",
 //                                    true);
 //
-//    camera->SetPosition(glm::vec3(0.0f, 400.0f, 200.0f));
+//    camera->SetPosition(glm::vec3(35.0f, 150.0f, 500.0f));
+//
+//    engine.LoadSave();
 //    
 //    cMesh* skyBoxMesh = engine.LoadMesh("Sphere_1_unit_Radius_UV.ply", "skybox");
 //    skyBoxMesh->isSkyBox = true;
 //    skyBoxMesh->setUniformDrawScale(5000.0f);
 //
-//    cMesh* mesh = engine.LoadMesh("tie_fighter.ply", "tie_fighter");
-//    mesh->bUseDebugColours = true;
+//    cMesh* mesh = engine.meshManager->FindMeshByFriendlyName("vampire");
+//    mesh->useBone = true;
+//    //cMesh* riggedMesh = engine.LoadMesh("Aland.FBX", "rigged");
+//    //riggedMesh->bDoNotLight = true;
 //
+//    Animation* anim = new Animation("idle", mesh);
+//    AnimationInfo* animInfo = mesh->modelDrawInfo.Animations[0];
+//    
+//    for (size_t i = 0; i < animInfo->NodeAnimations.size(); i++)
+//    {
+//        NodeAnimation* nodeAnim = animInfo->NodeAnimations[i];
+//        for (size_t j = 0; j < nodeAnim->PositionKeys.size(); j++)
+//        {
+//          //  glm::vec3 position = nodeAnim->PositionKeys[j].position;
+//		//	anim->positionKeyFrames.push_back(PositionKeyFrame(nodeAnim->positionKeyFrames[j].position, nodeAnim->positionKeyFrames[j].time));
+//		}
+//	}
 //
 //    float currTime = 0;
 //    float myTime = 0;
 //
 //    while (!glfwWindowShouldClose(engine.window))
 //    {
-//        engine.Update();      
+//        engine.Update();   
 //    }
 //
 //    engine.ShutDown();

@@ -5,6 +5,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include "GLFWCallbacks.h"
+#include "ImGuizmo.h"
 
 static void error_callback(int error, const char* description)
 {
@@ -28,7 +29,6 @@ Engine::Engine()
     camera = new Camera(glm::vec3(0.0,0.0f,0.0f),
         		        glm::vec3(0.0f, 0.0f, -1.0f),
         		        glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 10000.0f);
-
 }
 
 Engine::~Engine()
@@ -45,13 +45,7 @@ bool Engine::Initialize()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    ConfigReader configReader;
-    configReader.LoadConfigFile(config);
-    UserDef* userDef = config.userDef;
-
-    window = glfwCreateWindow(userDef->windowWidth,
-                              userDef->windowHeight,
-                              userDef->windowTitle.c_str(), NULL, NULL);
+    window = glfwCreateWindow(1920, 1080, "Template Scene", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -80,7 +74,7 @@ bool Engine::Initialize()
     SetShaderPath("../Assets/Shaders");
     SetModelPath("../Assets/Models");
     SetAudioPath("../Assets/Audio");
-    meshManager->SetTexturePath("../Assets/Textures");
+    meshManager->SetTexturePath("../Assets/Textures");   
 
     if (!LoadDefaultShaders())
     {
@@ -89,11 +83,24 @@ bool Engine::Initialize()
 
     LoadDefaultLights();
 
+
+    assetLib.m_texManager = meshManager->GetTextureManager();
+    assetLib.m_meshManager = meshManager;
+    assetLib.shaderProgramID = shaderProgramID;
+    assetLib.Init();
+
     return true;
 }
 
 void Engine::Update()
 {
+
+    //render render textures
+    for (int i = 0; i < renderTextures.size(); i++)
+    {
+        renderTextures[i]->Render();
+    }
+
     float ratio;
     int width, height;
 
@@ -105,10 +112,14 @@ void Engine::Update()
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::BeginFrame();
+    ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, width, height);
 
     // While drawing a pixel, see if the pixel that's already there is closer or not?
     glEnable(GL_DEPTH_TEST);
@@ -122,23 +133,15 @@ void Engine::Update()
     camera->Update(window, deltaTime);
 
     //draw meshes
-    meshManager->DrawAllObjects(shaderProgramID);
+    meshManager->DrawAllObjects(shaderProgramID);   
+
+    //show asset library
+    assetLib.RenderBox();
 
     // Time per frame
     double currentTime = glfwGetTime();
     deltaTime = currentTime - lastTime;
     lastTime = currentTime;
-
-    frameCount++;
-
-    if (deltaTime >= 1.0) {
-        double fps = static_cast<double>(frameCount) / deltaTime;
-        frameCount = 0;
-        // Display FPS
-        ImGui::Begin("FPS Counter"); ImGui::SetNextItemWidth(100);
-        ImGui::Text("FPS: %.2f", fps); 
-        ImGui::End();
-    }
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -164,7 +167,6 @@ void Engine::Update()
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-
 }
 
 void Engine::SetShaderPath(std::string filePath)
@@ -259,9 +261,12 @@ void Engine::ShutDown()
     //exit(EXIT_SUCCESS);
 }
 
-//void Engine::SetCamera(Camera* camera)
-//{
-//  //  this->camera = camera;
-//   // this->camera->shaderProgramID = shaderProgramID;
-//}
+RenderTexture* Engine::CreateRenderTexture(Camera* camera, std::vector<cMesh*> offScreenMesh, int width, int height)
+{
+    RenderTexture* rt = new RenderTexture(camera, width, height, shaderProgramID, offScreenMesh);
+    rt->meshManager = this->meshManager;
+    rt->lightManager = this->lightManager;
+    renderTextures.push_back(rt);
+    return rt;
+}
 

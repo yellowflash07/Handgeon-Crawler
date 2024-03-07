@@ -10,12 +10,11 @@ JsonReader::~JsonReader()
 {
 }
 
-bool JsonReader::LoadJsonFile(std::string filename, rapidjson::Document& document)
+bool JsonReader::LoadJsonFile(const char* filename, rapidjson::Document& document)
 {
     using namespace rapidjson;
     FILE* fp = 0;
-    std::string filePath = FILE_PATH + filename;
-    fopen_s(&fp, filePath.c_str(), "rb");
+    fopen_s(&fp, filename, "rb");
 
     if (fp == 0)
     {
