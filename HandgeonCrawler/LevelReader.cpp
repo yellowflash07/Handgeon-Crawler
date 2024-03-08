@@ -20,7 +20,7 @@ void LevelReader::LoadLevel(LevelData& levelData)
 	JsonReader reader;
 	rapidjson::Document document;
 
-	if (!reader.LoadJsonFile("LevelData.json", document))
+	if (!reader.LoadJsonFile("../Assets/Json/LevelData.json", document))
 	{
 		std::cout << "Failed to load json file" << std::endl;
 		return;
