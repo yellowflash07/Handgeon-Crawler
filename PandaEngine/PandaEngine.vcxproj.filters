@@ -79,6 +79,9 @@
     <Filter Include="Physics\SoftBody">
       <UniqueIdentifier>{8e26b1cb-dd2c-4ca2-8645-71ce86b28634}</UniqueIdentifier>
     </Filter>
+    <Filter Include="JsonReader">
+      <UniqueIdentifier>{fea0b378-c95f-4ec9-ad45-759201b59e5e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -227,6 +230,9 @@
     </ClCompile>
     <ClCompile Include="SoftBodyManager.cpp">
       <Filter>Physics\SoftBody</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonReader.cpp">
+      <Filter>JsonReader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -394,6 +400,9 @@
     </ClInclude>
     <ClInclude Include="SoftBody.h">
       <Filter>Physics\SoftBody</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonReader.h">
+      <Filter>JsonReader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
