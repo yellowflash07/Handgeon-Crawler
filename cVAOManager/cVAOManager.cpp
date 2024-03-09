@@ -133,8 +133,8 @@ bool cVAOManager::LoadModelIntoVAOAI(
     glDisableVertexAttribArray(vcol_location);
     glDisableVertexAttribArray(vNormal_location);
     glDisableVertexAttribArray(vTexureCoord_location);
-  //  glDisableVertexAttribArray(0);
-  //  glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(5);
+    glDisableVertexAttribArray(6);
  
 
     // Store the draw information into the map
@@ -168,10 +168,16 @@ bool cVAOManager::FindDrawInfoByModelName(
 
 bool cVAOManager::m_LoadTheFile(std::string fileName, sModelDrawInfo& drawInfo)
 {
-
+    std::cout << "Loading: " << fileName << std::endl;
     Assimp::Importer importer;
     std::string filePath = this->m_basePathWithoutSlash + "/" + fileName;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_GenNormals /*| aiProcess_GenNormals*/);
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_ValidateDataStructure /*| aiProcess_GenNormals*/);
+
+    std::string errorString = importer.GetErrorString();
+    if (!errorString.empty())
+    {
+		std::cout << "Error: " << importer.GetErrorString() << std::endl;
+	}
 
     if (!scene)
     {
@@ -188,57 +194,17 @@ bool cVAOManager::m_LoadTheFile(std::string fileName, sModelDrawInfo& drawInfo)
     drawInfo.numberOfVertices = mesh->mNumVertices;
     drawInfo.pVertices = new sVertex[drawInfo.numberOfVertices];  
 
-#pragma region BoneLoading
-    if (mesh->HasBones())
-    {
-        aiNode* root = scene->mRootNode;
-        drawInfo.RootNode = GenerateBoneHierarchy(root, drawInfo);
-        drawInfo.GlobalInverseTransformation = glm::inverse(drawInfo.RootNode->Transformation);
-        ExtractBoneWeightForVertices(mesh, drawInfo);
-
-        drawInfo.vecBoneWeights.resize(mesh->mNumVertices);
-        unsigned int numBones = mesh->mNumBones;
-        for (unsigned int boneIdx = 0; boneIdx < numBones; ++boneIdx)
-        {
-            aiBone* bone = mesh->mBones[boneIdx];
-
-            std::string name(bone->mName.C_Str(), bone->mName.length); //	'\0'
-            drawInfo.BoneNameToIdMap.insert(std::pair<std::string, int>(name, drawInfo.vecBoneInfo.size()));
-
-            // Store the offset matrices
-            BoneInfo info;
-            AssimpToGLM(bone->mOffsetMatrix, info.BoneOffset);
-            drawInfo.vecBoneInfo.emplace_back(info);
-            for (int weightIdx = 0; weightIdx < bone->mNumWeights; ++weightIdx)
-            {
-                aiVertexWeight& vertexWeight = bone->mWeights[weightIdx];
-
-                BoneWeightInfo& boneInfo = drawInfo.vecBoneWeights[vertexWeight.mVertexId];
-                for (int infoIdx = 0; infoIdx < 4; ++infoIdx)
-                {
-                    if (boneInfo.m_Weight[infoIdx] == 0.f)
-                    {
-                        boneInfo.m_BoneId[infoIdx] = boneIdx;
-                        boneInfo.m_Weight[infoIdx] = vertexWeight.mWeight;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-#pragma endregion
-
 #pragma region AnimationLoading
     if (scene->HasAnimations())
     {
         for (unsigned int i = 0; i < scene->mNumAnimations; i++)
         {
 			aiAnimation* pAnimation = scene->mAnimations[i];
-			AnimationInfo* animInfo = new AnimationInfo();
-			animInfo->AnimationName = pAnimation->mName.C_Str();
-			animInfo->Duration = (float)pAnimation->mDuration;
-			animInfo->TicksPerSecond = (float)pAnimation->mTicksPerSecond;
-			animInfo->RootNode = GenerateBoneHierarchy(scene->mRootNode, drawInfo);
+			AnimationInfo animInfo;
+			animInfo.AnimationName = pAnimation->mName.C_Str();
+			animInfo.Duration = (float)pAnimation->mDuration;
+			animInfo.TicksPerSecond = (float)pAnimation->mTicksPerSecond;
+			animInfo.RootNode = GenerateBoneHierarchy(scene->mRootNode, drawInfo);
             for (unsigned int j = 0; j < pAnimation->mNumChannels; j++)
             {
 				aiNodeAnim* pNodeAnim = pAnimation->mChannels[j];
@@ -248,7 +214,8 @@ bool cVAOManager::m_LoadTheFile(std::string fileName, sModelDrawInfo& drawInfo)
                     glm::vec3 pos = glm::vec3(pNodeAnim->mPositionKeys[k].mValue.x,
                         						pNodeAnim->mPositionKeys[k].mValue.y,
                         						pNodeAnim->mPositionKeys[k].mValue.z);
-					nodeAnim->PositionKeys.emplace((float)pNodeAnim->mPositionKeys[k].mTime, pos);
+                    PositionKeyFrame keyFrame(pos, (float)pNodeAnim->mPositionKeys[k].mTime);
+					nodeAnim->PositionKeys.push_back(keyFrame);
 				}
                 for (unsigned int k = 0; k < pNodeAnim->mNumRotationKeys; k++)
                 {
@@ -256,17 +223,19 @@ bool cVAOManager::m_LoadTheFile(std::string fileName, sModelDrawInfo& drawInfo)
                         												pNodeAnim->mRotationKeys[k].mValue.y,
                         												pNodeAnim->mRotationKeys[k].mValue.z);
 
-					nodeAnim->RotationKeys.emplace((float)pNodeAnim->mRotationKeys[k].mTime, rot);
+					RotationKeyFrame keyFrame(rot, (float)pNodeAnim->mRotationKeys[k].mTime);
+					nodeAnim->RotationKeys.push_back(keyFrame);
 				}
                 for (unsigned int k = 0; k < pNodeAnim->mNumScalingKeys; k++)
                 {
 					glm::vec3 scale = glm::vec3(pNodeAnim->mScalingKeys[k].mValue.x,
                         						pNodeAnim->mScalingKeys[k].mValue.y,
                         						pNodeAnim->mScalingKeys[k].mValue.z);
-					nodeAnim->ScalingKeys.emplace((float)pNodeAnim->mScalingKeys[k].mTime, scale);
+					ScaleKeyFrame keyFrame(scale, (float)pNodeAnim->mScalingKeys[k].mTime);
+		            nodeAnim->ScalingKeys.push_back(keyFrame);
                 }
 
-                animInfo->NodeAnimations.push_back(nodeAnim);
+                animInfo.NodeAnimations.insert(std::pair<std::string, NodeAnimation*>(nodeAnim->Name, nodeAnim));
             }
 
             drawInfo.Animations.push_back(animInfo);
@@ -306,28 +275,50 @@ bool cVAOManager::m_LoadTheFile(std::string fileName, sModelDrawInfo& drawInfo)
 			drawInfo.pVertices[i].v = mesh->mTextureCoords[0][i].y;
 		} 
 
-        if (mesh->HasBones())
-        {
-            drawInfo.pVertices[i].boneIndex[0] = drawInfo.vecBoneWeights[i].m_BoneId[0];
-            drawInfo.pVertices[i].boneIndex[1] = drawInfo.vecBoneWeights[i].m_BoneId[1];
-            drawInfo.pVertices[i].boneIndex[2] = drawInfo.vecBoneWeights[i].m_BoneId[2];
-            drawInfo.pVertices[i].boneIndex[3] = drawInfo.vecBoneWeights[i].m_BoneId[3];
-
-            drawInfo.pVertices[i].boneWeights[0] = drawInfo.vecBoneWeights[i].m_Weight[0];
-            drawInfo.pVertices[i].boneWeights[1] = drawInfo.vecBoneWeights[i].m_Weight[1];
-            drawInfo.pVertices[i].boneWeights[2] = drawInfo.vecBoneWeights[i].m_Weight[2];
-            drawInfo.pVertices[i].boneWeights[3] = drawInfo.vecBoneWeights[i].m_Weight[3];
-        }
-
     }
-
+#pragma region BONE LOADING
 
 
     if (mesh->HasBones())
     {
-      
+        aiNode* root = scene->mRootNode;
+        drawInfo.RootNode = GenerateBoneHierarchy(root, drawInfo);
+        drawInfo.GlobalInverseTransformation = glm::inverse(drawInfo.RootNode->Transformation);
+        unsigned int numBones = mesh->mNumBones;
+        for (unsigned int boneIdx = 0; boneIdx < numBones; ++boneIdx)
+        {
+            aiBone* bone = mesh->mBones[boneIdx];
+
+            std::string name(bone->mName.C_Str(), bone->mName.length); //	'\0'
+            drawInfo.BoneNameToIdMap.insert(std::pair<std::string, int>(name, drawInfo.vecBoneInfo.size()));
+
+            // Store the offset matrices
+            BoneInfo info;
+            info.boneName = name;
+            AssimpToGLM(bone->mOffsetMatrix, info.BoneOffset);
+            drawInfo.vecBoneInfo.emplace_back(info);
+
+            for (int weightIdx = 0; weightIdx < bone->mNumWeights; ++weightIdx)
+            {
+                aiVertexWeight& vertexWeight = bone->mWeights[weightIdx];
+
+                sVertex& vertex = drawInfo.pVertices[vertexWeight.mVertexId];
+
+                for (int infoIdx = 0; infoIdx < 4; ++infoIdx)
+                {
+                    if (vertex.boneWeights[infoIdx] <= 0.f)
+                    {
+                        vertex.boneIndex[infoIdx] = boneIdx;
+                        vertex.boneWeights[infoIdx] = vertexWeight.mWeight;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
+
+#pragma endregion
 
     drawInfo.numberOfIndices = mesh->mNumFaces * 3; // Triangles assumed
     drawInfo.pIndices = new unsigned int[drawInfo.numberOfIndices];
@@ -414,9 +405,7 @@ void cVAOManager::AssimpToGLM(const aiMatrix4x4& a, glm::mat4& g)
 Node* cVAOManager::GenerateBoneHierarchy(const aiNode* node, sModelDrawInfo& drawInfo)
 {
     Node* newNode = new Node(node->mName.C_Str());
-    AssimpToGLM(node->mTransformation, newNode->Transformation);
-   // newNode->Children.resize(node->mNumChildren);
-
+    AssimpToGLM(node->mTransformation, newNode->Transformation);   
     for (int i = 0; i < node->mNumChildren; i++)
     {
         newNode->Children.emplace_back(GenerateBoneHierarchy(node->mChildren[i], drawInfo));
@@ -425,34 +414,31 @@ Node* cVAOManager::GenerateBoneHierarchy(const aiNode* node, sModelDrawInfo& dra
     return newNode;
 }
 
-void cVAOManager::ExtractBoneWeightForVertices(const aiMesh* mesh, sModelDrawInfo& drawInfo)
+void cVAOManager::PrintMatrix(glm::mat4 theMatrix)
 {
-    auto& boneInfoMap = drawInfo.boneInfoMap;
-    int& boneCount = drawInfo.boneCount;
-    int totalVecBoneCount = 0;
-    for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+    for (int i = 0; i < 4; ++i)
     {
-        int boneID = -1;
-        std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
-        if (boneInfoMap.find(boneName) == boneInfoMap.end())
+        printf("|");
+        for (int j = 0; j < 4; ++j)
         {
-            BoneInfo newBoneInfo;
-            newBoneInfo.boneName = boneName;
-            newBoneInfo.boneID = boneCount;
-            AssimpToGLM(mesh->mBones[boneIndex]->mOffsetMatrix, newBoneInfo.BoneOffset);
-            boneInfoMap[boneName] = newBoneInfo;
-            boneID = boneCount;
-            drawInfo.vecBoneInfo.push_back(newBoneInfo);
-            boneCount++;
+            printf("%.2f ", theMatrix[i][j]);
         }
-        else
-        {
-            boneID = boneInfoMap[boneName].boneID;
-        }
-        assert(boneID != -1);
+        printf("|\n");
     }
-    bool test = true;
-    //recursively load all the children
-    
 }
+
+void cVAOManager::PrintMatrix(aiMatrix4x4 theMatrix)
+{
+    for (int i = 0; i < 4; ++i)
+    {
+		printf("|");
+        for (int j = 0; j < 4; ++j)
+        {
+			printf("%.2f ", theMatrix[i][j]);
+		}
+		printf("|\n");
+	}
+}
+
+
 

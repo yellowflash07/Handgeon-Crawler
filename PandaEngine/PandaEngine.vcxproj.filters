@@ -79,9 +79,6 @@
     <Filter Include="Physics\SoftBody">
       <UniqueIdentifier>{8e26b1cb-dd2c-4ca2-8645-71ce86b28634}</UniqueIdentifier>
     </Filter>
-    <Filter Include="JsonReader">
-      <UniqueIdentifier>{fea0b378-c95f-4ec9-ad45-759201b59e5e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -231,8 +228,8 @@
     <ClCompile Include="SoftBodyManager.cpp">
       <Filter>Physics\SoftBody</Filter>
     </ClCompile>
-    <ClCompile Include="JsonReader.cpp">
-      <Filter>JsonReader</Filter>
+    <ClCompile Include="Texture.cpp">
+      <Filter>TextureManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -386,9 +383,6 @@
     <ClInclude Include="AssetLibrary.h">
       <Filter>AssetLibrary</Filter>
     </ClInclude>
-    <ClInclude Include="..\TextureManager\stb_image.h">
-      <Filter>TextureManager</Filter>
-    </ClInclude>
     <ClInclude Include="..\FBO\cFBO.h">
       <Filter>FBO</Filter>
     </ClInclude>
@@ -401,8 +395,14 @@
     <ClInclude Include="SoftBody.h">
       <Filter>Physics\SoftBody</Filter>
     </ClInclude>
-    <ClInclude Include="JsonReader.h">
-      <Filter>JsonReader</Filter>
+    <ClInclude Include="AnimationFrames.h">
+      <Filter>Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TextureManager\stb_image.h">
+      <Filter>TextureManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>TextureManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
