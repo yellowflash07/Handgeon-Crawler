@@ -1,0 +1,35 @@
+Mesh Name:wall-opening.fbx
+Friendly Name:new terrain
+Position:0 -225.8 0
+Rotation:0 -0 0
+Scale:1 1 1
+Color:1 1 1 1
+Transparency:1
+Texture0:
+TextureRatio0:0
+Texture1:
+TextureRatio1:0
+Texture2:
+TextureRatio2:0
+Texture3:
+TextureRatio3:0
+Mask Texture:
+
+Mesh Name:Grid_10x10_vertical_in_y.ply
+Friendly Name:plane
+Position:0 0 0
+Rotation:-1.57 0 0
+Scale:100 100 100
+Color:1 1 1 1
+Transparency:1
+Texture0:
+TextureRatio0:1
+Texture1:
+TextureRatio1:0
+Texture2:
+TextureRatio2:0
+Texture3:
+TextureRatio3:0
+Mask Texture:
+
+ 

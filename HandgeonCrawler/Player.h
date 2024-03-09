@@ -2,6 +2,7 @@
 
 #include "iCharacter.h"
 #include "cMesh.h"
+#include  "PhysicsManager.h"
 #include "Input.h"
 #include "../PandaEngine/GraphicsCommon.h"
 #include <Camera.h>
@@ -17,6 +18,7 @@ public:
 
 	void Update(float deltaTime);
 	cMesh* mesh;
+	PhysicsBody* physicsBody;
 	float playerSpeed = 0.1f;
 };
 

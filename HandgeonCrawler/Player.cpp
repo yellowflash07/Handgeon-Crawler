@@ -16,18 +16,20 @@ void Player::Update(float deltaTime)
     glm::vec3 right = mesh->GetRightVector();
     if (input->keyHit == GLFW_KEY_W)
     {
-        mesh->drawPosition += playerSpeed * -forward;
+        //physicsBody->velocity += playerSpeed * -forward;
+        physicsBody->velocity += playerSpeed * -forward;
     }
     else if (input->keyHit == GLFW_KEY_S)
     {
-        mesh->drawPosition += playerSpeed * forward;
+        //mesh->drawPosition += playerSpeed * forward;
+        physicsBody->velocity += playerSpeed * forward;
     }
     else if (input->keyHit == GLFW_KEY_A)
     {
-        mesh->drawPosition += playerSpeed * right;
+        physicsBody->velocity += playerSpeed * right;
     }
     else if (input->keyHit == GLFW_KEY_D)
     {
-        mesh->drawPosition += playerSpeed * -right;
+        physicsBody->velocity += playerSpeed * -right;
     }
 }

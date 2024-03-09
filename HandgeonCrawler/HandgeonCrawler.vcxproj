@@ -149,6 +149,10 @@
     <ClInclude Include="LevelReader.h" />
     <ClInclude Include="Player.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Assets\Json\LevelData.json" />
+    <None Include="..\Assets\Json\Scene.json" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
