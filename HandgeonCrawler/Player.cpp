@@ -19,7 +19,6 @@ void Player::Update(float deltaTime)
     {
         physicsBody->velocity += playerSpeed * -forward;
     }
-
     if (input->keyHit == GLFW_KEY_S && input->action == GLFW_PRESS)
     {
         physicsBody->velocity += playerSpeed * forward;
@@ -34,12 +33,12 @@ void Player::Update(float deltaTime)
     }
     if (input->keyHit == GLFW_KEY_SPACE && input->action == GLFW_PRESS)
     {
-        physicsBody->velocity.y = 40.0f;
+        physicsBody->velocity.y = 35.0f;
     }
 
 
-    if(input->action == GLFW_RELEASE)
+    /*if(input->action == GLFW_RELEASE)
     {
-		//physicsBody->velocity = glm::vec3(0.0f);
-	}
+		physicsBody->velocity = glm::vec3(0.0f);
+	}*/
 }

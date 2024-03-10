@@ -112,7 +112,7 @@ int main(void)
         //rotate camera
     	 glm::vec3 cameraRot = glm::vec3(camera->pitch / 100.0f, -camera->yaw / 100.0f, 0);
 
-        //follow the player
+        ////follow the player
         camera->Follow(player->mesh->drawPosition, glm::vec3(0, 0.3f, 1),
             player->mesh->drawPosition, cameraRot);
 

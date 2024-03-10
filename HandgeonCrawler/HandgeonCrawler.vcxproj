@@ -156,4 +156,10 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="AfterBuild" AfterTargets="Build" Condition=" '$(Configuration)' == 'Release'">
+    <!--Message before call-->
+    <Message Text="||MESSAGE|| Calling batch file to compress all png files" Importance="high" />
+    <!--Call Batch file-->
+    <Exec Command="call ../Assets/Textures/CompressFiles.bat" />
+  </Target>
 </Project>

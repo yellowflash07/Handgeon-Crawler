@@ -39,7 +39,7 @@ Rotation:0 -0 0
 Scale:1.65268 0.66 4.84567
 Color:1 1 1 1
 Transparency:1
-Texture0:Blank_UV_Text_Texture.bmp
+Texture0:colormap.png
 TextureRatio0:1
 Texture1:
 TextureRatio1:0
