@@ -7,7 +7,7 @@
           "Health" : 100,
           "Attack" : 10,
           "Speed"  : 1,
-          "Position" : [ 0,50,0]
+          "Position" : [ 0,80,0]
         }
       ]
     }
