@@ -25,7 +25,7 @@ struct PhysicsBody
 	glm::vec3 angularVelocity;
 	glm::vec3 angularAcceleration;
 	float inverseMass;
-
+	bool isEnabled = false;
 	void setShape(PhysicsShapes::sSphere* pSphereProps);
 	void setShape(PhysicsShapes::sPlane* pPlaneProps);
 	void setShape(PhysicsShapes::sTriangle* pTriangleProps);
@@ -78,9 +78,11 @@ public:
 	void CheckIntersections(float deltaTime);
 	void AddMesh(PhysicsBody* physicsBody);
 	void GenerateAABBs(PhysicsBody* body,int numberOfAABBs, int scaleExtents = 1);
+	PhysicsBody* FindPhysicsBodyByFriendlyName(std::string friendlyName);
+	std::vector<PhysicsBody*> bodies;
+
 private:
 	MeshManager* meshManager;
-	std::vector<PhysicsBody*> bodies;
 	glm::vec3 ClosestPtPointTriangle(glm::vec3 p, glm::vec3 a, glm::vec3 b, glm::vec3 c);
 	bool CheckAABBOverlap(PhysicsBody* pBodyA, PhysicsBody* pBodyB);
 	
@@ -94,7 +96,7 @@ private:
 	bool m_Sphere_TriMeshIndirect_IntersectionTest(PhysicsBody* pSphere, PhysicsBody* pTriMesh);
 	bool m_Sphere_TriMeshLocal_IntersectionTest(PhysicsBody* pSphere, PhysicsBody* pTriMesh);
 	bool m_AABB_TriMeshIndirect_IntersectionTest(PhysicsBody* pAABB, PhysicsBody* pTriMesh);
-
+	bool m_AABB_AABB_IntersectionTest(PhysicsBody* pAABB, PhysicsBody* pAABB1);
 
 };
 

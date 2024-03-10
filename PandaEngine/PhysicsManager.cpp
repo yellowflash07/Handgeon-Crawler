@@ -71,7 +71,8 @@ void PhysicsManager::CheckIntersections(float deltaTime)
 
 			// Check if the two AABBs overlap
 			if (CheckAABBOverlap(pObjectA, pObjectB))
-			{				
+			{		
+				bool breakPoint = true;
 				// Narrow phase
 				switch (pObjectA->shapeType)
 				{
@@ -101,6 +102,10 @@ void PhysicsManager::CheckIntersections(float deltaTime)
 									//std::cout << "AABB-Tri T_T!!" << std::endl;
 								}
 								break;
+							case PhysicsShapes::AABB:
+									// AABB - AABB
+									this->m_AABB_AABB_IntersectionTest(pObjectA, pObjectB);
+									break;
 						}
 						break;
 				}
@@ -177,10 +182,10 @@ void PhysicsManager::GenerateAABBs(PhysicsBody* body, int numberOfAABBs, int sca
 					}
 				}
 
-				if (pAABB->vecTrianglesInside.empty())
+				/*if (pAABB->vecTrianglesInside.empty())
 				{
 					continue;
-				}
+				}*/
 
 				pAABB->minXYZ *= scaleExtents;
 				pAABB->maxXYZ *= scaleExtents;
@@ -192,12 +197,31 @@ void PhysicsManager::GenerateAABBs(PhysicsBody* body, int numberOfAABBs, int sca
 	std::cout << "Generated " << body->aabbs.size() << " AABBs" << std::endl;
 }
 
+PhysicsBody* PhysicsManager::FindPhysicsBodyByFriendlyName(std::string friendlyName)
+{
+	
+	for (PhysicsBody* pBody : this->bodies)
+	{
+		if (pBody->mesh->friendlyName == friendlyName)
+		{
+			return pBody;
+		}
+	}
+	return nullptr;
+
+}
+
 bool PhysicsManager::CheckAABBOverlap(PhysicsBody* pBodyA, PhysicsBody* pBodyB)
 {
+	if (!pBodyA->isEnabled)
+	{
+		return false;
+	}
+
 	// Temporary vector to store currently overlapping AABB pairs
 	std::vector<std::pair<cAABB*, cAABB*>> overlappingPairsTemp;
 	bool foundPairs = false;
-
+	
 	for (cAABB* pAABB1 : pBodyA->aabbs)
 	{
 		for (cAABB* pAABB2 : pBodyB->aabbs)
@@ -401,37 +425,6 @@ bool PhysicsManager::m_Sphere_TriMeshIndirect_IntersectionTest(PhysicsBody* sphe
 		glm::vec3 v2 = triMesh->activeAABB->vecTrianglesInside[index].v2;
 		glm::vec3 v3 = triMesh->activeAABB->vecTrianglesInside[index].v3;
 
-		//glm::mat4 matModel = glm::mat4(1.0f);
-
-		//// Translation
-		//glm::mat4 matTranslate = glm::translate(glm::mat4(1.0f),
-		//						glm::vec3(	triMesh->mesh->drawPosition.x,
-		//									triMesh->mesh->drawPosition.y,
-		//									triMesh->mesh->drawPosition.z));
-
-		//// Rotation matrix generation
-		//glm::mat4 matRotation = glm::mat4(triMesh->mesh->get_qOrientation());
-
-		//glm::mat4 matScale = glm::scale(glm::mat4(1.0f),
-		//	glm::vec3(triMesh->mesh->drawScale.x,
-		//			triMesh->mesh->drawScale.y,
-		//			triMesh->mesh->drawScale.z));
-
-		//		// Combine all these transformation
-		//matModel = matModel * matTranslate;
-
-		//matModel = matModel * matRotation;
-
-		//matModel = matModel * matScale;
-
-		//glm::vec4 vertsWorld[3];
-		//vertsWorld[0] = (matModel * glm::vec4(verts[0], 1.0f));
-		//vertsWorld[1] = (matModel * glm::vec4(verts[1], 1.0f));
-		//vertsWorld[2] = (matModel * glm::vec4(verts[2], 1.0f));
-
-		// And make sure you multiply the normal by the inverse transpose
-		// OR recalculate it right here! 
-
 		// ******************************************************
 
 		glm::vec3 thisTriangleClosestPoint = this->ClosestPtPointTriangle(sphere->mesh->drawPosition,v1, v2, v3);
@@ -510,6 +503,64 @@ bool PhysicsManager::m_AABB_TriMeshIndirect_IntersectionTest(PhysicsBody* pAABB,
 	}
 	pAABB->collisionEvents.clear();
 	pTriMesh->collisionEvents.clear();
+	return false;
+}
+
+bool PhysicsManager::m_AABB_AABB_IntersectionTest(PhysicsBody* physicsBodyA, PhysicsBody* physicsBodyB)
+{
+
+	for (int i = 0; i < physicsBodyA->aabbPairs.size(); i++)
+	{
+		cAABB* pAABB1 = physicsBodyA->aabbPairs[i].first;
+		cAABB* pAABB2 = physicsBodyA->aabbPairs[i].second;
+		// Check for overlap along each axis
+		if (pAABB1->maxXYZ.x < pAABB2->minXYZ.x || pAABB1->minXYZ.x > pAABB2->maxXYZ.x)
+		{
+			continue;
+		}
+		if (pAABB1->maxXYZ.y < pAABB2->minXYZ.y || pAABB1->minXYZ.y > pAABB2->maxXYZ.y)
+		{
+			continue;
+		}
+		if (pAABB1->maxXYZ.z < pAABB2->minXYZ.z || pAABB1->minXYZ.z > pAABB2->maxXYZ.z)
+		{
+			continue;
+		}
+	//	std::cout << physicsBodyA->mesh->friendlyName << " is overlapping " << physicsBodyB->mesh->friendlyName << std::endl;
+
+		// Calculate overlap along each axis
+		float overlapX = std::min(pAABB1->maxXYZ.x, pAABB2->maxXYZ.x) - std::max(pAABB1->minXYZ.x, pAABB2->minXYZ.x);
+		float overlapY = std::min(pAABB1->maxXYZ.y, pAABB2->maxXYZ.y) - std::max(pAABB1->minXYZ.y, pAABB2->minXYZ.y);
+		float overlapZ = std::min(pAABB1->maxXYZ.z, pAABB2->maxXYZ.z) - std::max(pAABB1->minXYZ.z, pAABB2->minXYZ.z);
+
+		//glm::vec3 phyADirection = glm::normalize(physicsBodyA->velocity);
+		//physicsBodyB->velocity = phyADirection * glm::length(physicsBodyA->velocity);
+		// Determine which axis has the smallest overlap and nullify the velocity in that axis
+		if (std::abs(overlapX) < std::abs(overlapY) && std::abs(overlapX) < std::abs(overlapZ))
+		{
+			// Overlapping along the x-axis
+			//physicsBodyB->velocity.x = physicsBodyB->velocity.x;
+			physicsBodyA->velocity.x = 0.0f;
+			
+		}
+		else if (std::abs(overlapY) < std::abs(overlapX) && std::abs(overlapY) < std::abs(overlapZ))
+		{
+			// Overlapping along the y-axis
+			//physicsBodyB->velocity.y = physicsBodyB->velocity.y;
+			physicsBodyA->velocity.y = 0.0f;
+		}
+		else
+		{
+			// Overlapping along the z-axis
+			//physicsBodyB->velocity.z = physicsBodyB->velocity.z;
+			physicsBodyA->velocity.z = 0.0f;
+		}
+
+		return true;
+		
+	}
+	physicsBodyA->collisionEvents.clear();
+	physicsBodyB->collisionEvents.clear();
 	return false;
 }
 
