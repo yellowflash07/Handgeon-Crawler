@@ -33,10 +33,10 @@ public:
 	cBasicTextureManager* GetTextureManager() { return textureManager; }
 	void RemoveMesh(std::string friendlyName);
 	cVAOManager* vaoManager;
+	std::vector< cMesh* > meshList;
 	void UpdateVAOBuffers(std::string friendlyName, sModelDrawInfo& drawInfo);
 private:
 	GLuint shaderProgramID;
-	std::vector< cMesh* > meshList;
 	cMesh* selectedMesh;
 	SceneSaver* saver;
 	cBasicTextureManager* textureManager;
