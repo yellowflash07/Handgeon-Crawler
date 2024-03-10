@@ -84,6 +84,7 @@ bool Engine::Initialize()
 
     LoadDefaultLights();
 
+  //  KeyInput::setupKeyInputs(window);
 
     assetLib.m_texManager = meshManager->GetTextureManager();
     assetLib.m_meshManager = meshManager;
