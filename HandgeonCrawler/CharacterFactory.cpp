@@ -15,7 +15,6 @@ iCharacter* CharacterFactory::CreateCharacter(Character* character)
 		Player* player = new Player();
 		player->mesh = character->mesh;
 		player->mesh->drawScale = glm::vec3(20, 20, -20);
-
 		player->playerSpeed = character->speed;
 		return player;
 	}
