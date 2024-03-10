@@ -20,5 +20,8 @@ public:
 	cMesh* mesh;
 	PhysicsBody* physicsBody;
 	float playerSpeed = 0.1f;
+	GLFWwindow* window;
+private:
+	glm::vec3 maxVelocity = glm::vec3(0.5f);
 };
 

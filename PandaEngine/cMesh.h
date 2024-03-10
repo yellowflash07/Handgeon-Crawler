@@ -58,6 +58,11 @@ public:
 		return newRight;
 	}
 
+	glm::vec3 GetUpVector(void)
+	{
+		glm::vec3 newUp = glm::cross(this->GetForwardVector(), this->GetRightVector());
+		return newUp;
+	}
 
 
 	glm::vec3 drawScale;

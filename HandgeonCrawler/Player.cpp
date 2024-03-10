@@ -1,5 +1,4 @@
 #include "Player.h"
-
 Player::Player()
 {
 }
@@ -13,23 +12,34 @@ void Player::Update(float deltaTime)
     mesh->setRotationFromEuler(glm::vec3(0, -camera->yaw / 100.0f, 0));
     glm::vec3 forward = mesh->GetForwardVector();
     forward = glm::vec3(forward.x, 0, forward.z); // Flatten the forward vector
-    glm::vec3 right = mesh->GetRightVector();
-    if (input->keyHit == GLFW_KEY_W)
+    glm::vec3 right = mesh->GetRightVector(); 
+    glm::vec3 up = mesh->GetUpVector();
+
+    if (input->keyHit == GLFW_KEY_W && input->action == GLFW_PRESS)
     {
-        //physicsBody->velocity += playerSpeed * -forward;
         physicsBody->velocity += playerSpeed * -forward;
     }
-    else if (input->keyHit == GLFW_KEY_S)
+
+    if (input->keyHit == GLFW_KEY_S && input->action == GLFW_PRESS)
     {
-        //mesh->drawPosition += playerSpeed * forward;
         physicsBody->velocity += playerSpeed * forward;
     }
-    else if (input->keyHit == GLFW_KEY_A)
+    if (input->keyHit == GLFW_KEY_A && input->action == GLFW_PRESS)
     {
         physicsBody->velocity += playerSpeed * right;
     }
-    else if (input->keyHit == GLFW_KEY_D)
+    if (input->keyHit == GLFW_KEY_D && input->action == GLFW_PRESS)
     {
         physicsBody->velocity += playerSpeed * -right;
     }
+    if (input->keyHit == GLFW_KEY_SPACE && input->action == GLFW_PRESS)
+    {
+        physicsBody->velocity.y = 40.0f;
+    }
+
+
+    if(input->action == GLFW_RELEASE)
+    {
+		//physicsBody->velocity = glm::vec3(0.0f);
+	}
 }
